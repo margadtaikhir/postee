@@ -666,6 +666,26 @@ func TestVulsCustomFieldsEmail(t *testing.T) {
 	})
 }
 
+// The scan templates aggregate messages like vuls-email and vuls-html, so a route with aggregation sends one message.
+func TestCustomFieldsScanTemplatesSupportAggregation(t *testing.T) {
+	for _, pkg := range []string{vulsEmailPkg, "postee.vuls.customfields.teams"} {
+		t.Run(pkg, func(t *testing.T) {
+			evaluator, err := BuildBundledRegoEvaluator(pkg)
+			require.NoError(t, err)
+			require.True(t, evaluator.IsAggregationSupported())
+
+			first := evalTemplate(t, pkg, parseInput(t, `{"image": "img:1"}`))
+			second := evalTemplate(t, pkg, parseInput(t, `{"image": "img:2"}`))
+			out, err := evaluator.BuildAggregatedContent([]map[string]string{first, second})
+			require.NoError(t, err)
+			for _, msg := range []map[string]string{first, second} {
+				assert.Contains(t, out["description"], "<h1>"+msg["title"]+"</h1>")
+				assert.Contains(t, out["description"], msg["description"])
+			}
+		})
+	}
+}
+
 func TestIncidentCustomFieldsEmail(t *testing.T) {
 	t.Run("policy information needs one of its fields", func(t *testing.T) {
 		body := emailBody(t, incidentEmailPkg, withOptions(incidentEmailInput(t), []string{"namespace"}, ""))

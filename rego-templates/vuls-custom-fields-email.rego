@@ -311,3 +311,5 @@ property_rows := concat("", [property_row(pair) | pair := fields_pairs(cells)[_]
 result := sprintf(tpl, [style, logo, property_rows, concat("", blocks)])
 
 title := vuls_title
+
+aggregation_pkg := "postee.vuls.html.aggregation"

@@ -1,6 +1,7 @@
 package outputs
 
 import (
+	"context"
 	"errors"
 	"io"
 	"net"
@@ -146,11 +147,19 @@ func TestHTTPClient_SendStatus(t *testing.T) {
 // error type, not the text.
 func TestHTTPClient_SendErrors(t *testing.T) {
 	t.Run("unknown host", func(t *testing.T) {
-		// .invalid is a reserved domain that never resolves (RFC 6761)
-		u, err := url.Parse("http://path-to-nowhere.invalid")
-		require.NoError(t, err)
+		// the dialer fails like the DNS lookup of an unknown host, so the test does not need a network
+		lookupErr := &net.DNSError{Err: "no such host", Name: "path-to-nowhere.invalid", IsNotFound: true}
+		ec := HTTPClient{
+			URL:    &url.URL{Scheme: "http", Host: "path-to-nowhere.invalid"},
+			Method: http.MethodGet,
+			Client: http.Client{Transport: &http.Transport{
+				DialContext: func(context.Context, string, string) (net.Conn, error) {
+					return nil, &net.OpError{Op: "dial", Net: "tcp", Err: lookupErr}
+				},
+			}},
+		}
 
-		_, err = HTTPClient{URL: u, Method: http.MethodGet}.Send(httpTestEvent)
+		_, err := ec.Send(httpTestEvent)
 		var dnsErr *net.DNSError
 		require.ErrorAs(t, err, &dnsErr)
 		assert.Equal(t, "path-to-nowhere.invalid", dnsErr.Name)

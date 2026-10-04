@@ -59,3 +59,5 @@ name_line := fields_line(sprintf("%s name", [vuls_report_type]), vuls_report_nam
 result := concat("", array.concat([name_line], [s[1] | s := sections[_]; fields_show(s[0])]))
 
 title := vuls_title
+
+aggregation_pkg := "postee.vuls.html.aggregation"
